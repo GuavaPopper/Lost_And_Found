@@ -1,5 +1,7 @@
 "use client"
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { format } from "date-fns"
@@ -7,9 +9,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { CalendarIcon, Search as SearchIcon, Filter, Eye, AlertCircle } from "lucide-react"
-
-// Force dynamic rendering - prevent static generation at build time
-export const dynamic = 'force-dynamic'
 
 import DashboardLayout from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
