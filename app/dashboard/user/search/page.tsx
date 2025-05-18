@@ -8,6 +8,9 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { CalendarIcon, Search as SearchIcon, Filter, Eye, AlertCircle } from "lucide-react"
 
+// Force dynamic rendering - prevent static generation at build time
+export const dynamic = 'force-dynamic'
+
 import DashboardLayout from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
