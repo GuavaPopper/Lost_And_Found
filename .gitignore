@@ -25,3 +25,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# cursor editor config
+/.cursor/
+
+# task list
+TASKS.md
