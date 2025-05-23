@@ -17,9 +17,18 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { supabase } from "@/lib/supabase"
 import { ReportItem } from "@/components/user-dashboard"
 import { ViewItemDialog } from "@/components/view-item-dialog"
+import { toast } from "@/components/ui/use-toast"
 
 export default function AllReportsPage() {
   const [reports, setReports] = useState<ReportItem[]>([])
@@ -30,6 +39,9 @@ export default function AllReportsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [selectedReport, setSelectedReport] = useState<ReportItem | null>(null)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [reportToReturn, setReportToReturn] = useState<ReportItem | null>(null)
 
   // Fetch all reports
   useEffect(() => {
@@ -166,6 +178,62 @@ export default function AllReportsPage() {
     setIsViewDialogOpen(true)
   }
 
+  // Handle opening the return confirmation dialog
+  const handleReturnConfirmation = (report: ReportItem) => {
+    setReportToReturn(report)
+    setIsReturnDialogOpen(true)
+  }
+
+  // Handle mark as returned action
+  const handleMarkAsReturned = async () => {
+    if (!reportToReturn) return
+    
+    setIsUpdating(true)
+    try {
+      const table = reportToReturn.type === "lost" ? "barang_hilang" : "barang_temuan"
+      const idField = reportToReturn.type === "lost" ? "id_hilang" : "id_temuan"
+      const id = reportToReturn.type === "lost" ? reportToReturn.id_hilang : reportToReturn.id_temuan
+      
+      const { error } = await supabase
+        .from(table)
+        .update({ status: "returned" })
+        .eq(idField, id)
+      
+      if (error) throw error
+      
+      // Update local state
+      setReports(prevReports => 
+        prevReports.map(report => {
+          if (report.type === reportToReturn.type) {
+            if (
+              (report.type === "lost" && report.id_hilang === reportToReturn.id_hilang) ||
+              (report.type === "found" && report.id_temuan === reportToReturn.id_temuan)
+            ) {
+              return { ...report, status: "returned" }
+            }
+          }
+          return report
+        })
+      )
+      
+      toast({
+        title: "Item marked as returned",
+        description: `${reportToReturn.nama_barang} has been marked as returned.`,
+      })
+    } catch (error) {
+      console.error("Error updating item status:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update item status.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsUpdating(false)
+      setIsReturnDialogOpen(false)
+      setReportToReturn(null)
+    }
+  }
+
   return (
     <div className="container px-0 mx-auto flex flex-col h-full max-w-7xl">
       {/* Page Header */}
@@ -278,6 +346,7 @@ export default function AllReportsPage() {
                       variant={report.status === "returned" ? "secondary" : "default"}
                       size="sm"
                       disabled={report.status === "returned"}
+                      onClick={() => report.status !== "returned" && handleReturnConfirmation(report)}
                     >
                       {report.status === "returned" ? "Returned" : "Mark as Returned"}
                     </Button>
@@ -307,9 +376,63 @@ export default function AllReportsPage() {
         )}
       </Card>
       
+      {/* View Item Dialog */}
       {selectedReport && (
         <ViewItemDialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen} item={selectedReport} />
       )}
+
+      {/* Mark as Returned Confirmation Dialog */}
+      <Dialog open={isReturnDialogOpen} onOpenChange={setIsReturnDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark Item as Returned</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to mark this item as returned to its owner?
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {reportToReturn && (
+            <div className="py-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge variant={getTypeBadgeVariant(reportToReturn.type)}>
+                  {reportToReturn.type === "lost" ? "Lost" : "Found"}
+                </Badge>
+                <span className="font-medium">{reportToReturn.nama_barang}</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {reportToReturn.kategori} • {reportToReturn.lokasi}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Reported by: {reportToReturn.reporter_name}
+              </p>
+            </div>
+          )}
+          
+          <DialogFooter className="sm:justify-end gap-2 mt-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsReturnDialogOpen(false)}
+              disabled={isUpdating}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleMarkAsReturned}
+              disabled={isUpdating}
+            >
+              {isUpdating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Confirm Return"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 
