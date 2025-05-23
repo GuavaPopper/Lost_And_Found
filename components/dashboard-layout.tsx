@@ -67,7 +67,6 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
     { href: "/dashboard/admin/users", label: "Manage Users", icon: Users },
     { href: "/dashboard/admin/reports", label: "Manage Reports", icon: ClipboardList },
     { href: "/dashboard/admin/logs", label: "Activity Logs", icon: Search },
-    { href: "/dashboard/admin/settings", label: "Settings", icon: Settings },
   ]
 
   const menuItems = role === "user" ? userMenuItems : role === "security" ? securityMenuItems : adminMenuItems
